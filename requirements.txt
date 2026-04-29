@@ -2,3 +2,4 @@ django>=5.2
 anthropic>=0.97
 openai>=1.0
 python-dotenv>=1.0
+gunicorn>=22.0
