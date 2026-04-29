@@ -1,0 +1,344 @@
+{% extends "stories/base.html" %}
+{% block title %}{{ story.display_title }} · YotoGenerate{% endblock %}
+
+{% block extra_head %}
+<style>
+  #chat-container { height: calc(100vh - 280px); min-height: 320px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 py-8">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <a href="{% url 'library' %}" class="text-gray-400 hover:text-gray-600 text-sm">← My Stories</a>
+      <h1 class="font-display text-3xl text-brand-700 mt-1">{{ story.display_title }}</h1>
+      <p class="text-sm text-gray-500">
+        For {{ story.child_name }}{% if story.child_age %}, age {{ story.child_age }}{% endif %}
+      </p>
+    </div>
+    <div class="flex gap-2">
+      <button id="btn-generate-story"
+        class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-5 py-2.5 rounded-full text-sm shadow transition">
+        ✍️ Write story
+      </button>
+    </div>
+  </div>
+
+  <div class="grid lg:grid-cols-2 gap-6">
+
+    <!-- LEFT: Chat -->
+    <div class="flex flex-col bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-3 border-b border-amber-50 bg-amber-50 flex items-center gap-2">
+        <span class="text-lg">💬</span>
+        <span class="font-semibold text-sm text-gray-700">Story Assistant</span>
+      </div>
+
+      <!-- Messages -->
+      <div id="chat-container" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        {% for msg in chat_messages %}
+        {% if msg.role == 'assistant' %}
+        <div class="flex gap-3">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm flex-shrink-0">✨</div>
+          <div class="chat-bubble-ai bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-gray-700 max-w-sm leading-relaxed">
+            {{ msg.content|linebreaksbr }}
+          </div>
+        </div>
+        {% else %}
+        <div class="flex gap-3 justify-end">
+          <div class="chat-bubble-user bg-brand-500 text-white px-4 py-3 text-sm max-w-sm leading-relaxed">
+            {{ msg.content|linebreaksbr }}
+          </div>
+          <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm flex-shrink-0">👤</div>
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <!-- Typing indicator (hidden) -->
+        <div id="typing-indicator" class="flex gap-3 hidden">
+          <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm flex-shrink-0">✨</div>
+          <div class="chat-bubble-ai bg-amber-50 border border-amber-100 px-4 py-3 flex items-center gap-1">
+            <span class="typing-dot w-2 h-2 rounded-full bg-brand-400 inline-block"></span>
+            <span class="typing-dot w-2 h-2 rounded-full bg-brand-400 inline-block"></span>
+            <span class="typing-dot w-2 h-2 rounded-full bg-brand-400 inline-block"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="border-t border-amber-100 p-4">
+        <form id="chat-form" class="flex gap-2">
+          {% csrf_token %}
+          <input
+            id="chat-input"
+            type="text"
+            placeholder="Reply to the assistant…"
+            autocomplete="off"
+            class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
+          />
+          <button type="submit"
+            class="bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition">
+            Send
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT: Story preview -->
+    <div class="flex flex-col bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
+      <div class="px-5 py-3 border-b border-amber-50 bg-amber-50 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">📖</span>
+          <span class="font-semibold text-sm text-gray-700" id="story-title-header">
+            {% if story.title %}{{ story.title }}{% else %}Story Preview{% endif %}
+          </span>
+        </div>
+        <div id="story-actions" class="flex gap-2 {% if not story.content %}hidden{% endif %}">
+          <button id="btn-approve"
+            class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition {% if story.is_complete %}hidden{% endif %}">
+            ✓ I'm happy with this!
+          </button>
+          <a href="{% url 'story_detail' story.pk %}" id="btn-view-detail"
+            class="bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold px-3 py-1.5 rounded-full transition {% if not story.is_complete %}hidden{% endif %}">
+            View full story →
+          </a>
+        </div>
+      </div>
+
+      <div id="story-container" class="flex-1 overflow-y-auto px-6 py-5" style="height: calc(100vh - 280px); min-height: 320px;">
+        {% if story.content %}
+        <div id="story-content" class="prose-story text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ story.content }}</div>
+        {% else %}
+        <div id="story-placeholder" class="flex flex-col items-center justify-center h-full text-center text-gray-400">
+          <div class="text-5xl mb-4">📝</div>
+          <p class="text-sm">Your story will appear here once generated.</p>
+          <p class="text-xs mt-2">Chat with the assistant first, then click <strong>Write story</strong>.</p>
+        </div>
+        <div id="story-content" class="prose-story text-gray-700 text-sm leading-relaxed whitespace-pre-wrap hidden"></div>
+        {% endif %}
+      </div>
+
+      <!-- Audio section -->
+      <div id="audio-section" class="border-t border-amber-100 p-4 {% if not story.content %}hidden{% endif %}">
+        {% if story.audio_file %}
+        <div id="audio-player" class="space-y-2">
+          <p class="text-xs text-gray-500 font-medium">🎧 Narrated audio</p>
+          <audio controls class="w-full h-10">
+            <source src="{{ story.audio_file.url }}" type="audio/mpeg" />
+          </audio>
+          <a href="{{ story.audio_file.url }}" download
+            class="inline-block text-xs text-brand-600 hover:underline">⬇ Download MP3</a>
+        </div>
+        {% else %}
+        <div id="audio-generate-area">
+          <p class="text-xs text-gray-500 mb-2 font-medium">🎧 Generate narrated audio</p>
+          <div class="flex gap-2 items-center">
+            <button id="btn-generate-audio"
+              class="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-4 py-2 rounded-full transition">
+              Generate MP3
+            </button>
+            <span id="audio-spinner" class="text-xs text-gray-400 hidden">Generating audio… this may take a moment</span>
+          </div>
+        </div>
+        <div id="audio-player-new" class="hidden space-y-2">
+          <p class="text-xs text-gray-500 font-medium">🎧 Narrated audio</p>
+          <audio id="new-audio" controls class="w-full h-10"></audio>
+          <a id="audio-download" href="#" download
+            class="inline-block text-xs text-brand-600 hover:underline">⬇ Download MP3</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const STORY_PK = {{ story.pk }};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+// Helpers
+function scrollChat() {
+  const c = document.getElementById('chat-container');
+  c.scrollTop = c.scrollHeight;
+}
+function scrollStory() {
+  const c = document.getElementById('story-container');
+  c.scrollTop = 0;
+}
+
+scrollChat();
+
+function appendMessage(role, text) {
+  const container = document.getElementById('chat-container');
+  const typing = document.getElementById('typing-indicator');
+
+  const div = document.createElement('div');
+  div.className = role === 'assistant'
+    ? 'flex gap-3'
+    : 'flex gap-3 justify-end';
+
+  const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+  if (role === 'assistant') {
+    div.innerHTML = `
+      <div class="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-sm flex-shrink-0">✨</div>
+      <div class="chat-bubble-ai bg-amber-50 border border-amber-100 px-4 py-3 text-sm text-gray-700 max-w-sm leading-relaxed">${escaped}</div>`;
+  } else {
+    div.innerHTML = `
+      <div class="chat-bubble-user bg-brand-500 text-white px-4 py-3 text-sm max-w-sm leading-relaxed">${escaped}</div>
+      <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm flex-shrink-0">👤</div>`;
+  }
+
+  container.insertBefore(div, typing);
+  scrollChat();
+}
+
+function showTyping() {
+  document.getElementById('typing-indicator').classList.remove('hidden');
+  scrollChat();
+}
+function hideTyping() {
+  document.getElementById('typing-indicator').classList.add('hidden');
+}
+
+// Chat form
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.disabled = true;
+  appendMessage('user', text);
+  showTyping();
+
+  try {
+    const resp = await fetch(`/story/${STORY_PK}/message/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await resp.json();
+    hideTyping();
+
+    if (data.error) {
+      appendMessage('assistant', 'Sorry, something went wrong. Please try again.');
+    } else {
+      appendMessage('assistant', data.reply);
+      if (data.story_approved) {
+        showApprovedBanner();
+      }
+    }
+  } catch (err) {
+    hideTyping();
+    appendMessage('assistant', 'Connection error. Please try again.');
+  } finally {
+    input.disabled = false;
+    input.focus();
+  }
+});
+
+// Generate story button
+document.getElementById('btn-generate-story').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-generate-story');
+  btn.disabled = true;
+  btn.textContent = 'Writing…';
+  showTyping();
+
+  try {
+    const resp = await fetch(`/story/${STORY_PK}/generate/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+    });
+    const data = await resp.json();
+    hideTyping();
+
+    appendMessage('assistant', data.reply);
+
+    // Show story in right panel
+    if (data.content) {
+      const placeholder = document.getElementById('story-placeholder');
+      const content = document.getElementById('story-content');
+      if (placeholder) placeholder.classList.add('hidden');
+      content.classList.remove('hidden');
+      content.textContent = data.content;
+      scrollStory();
+
+      if (data.title) {
+        document.getElementById('story-title-header').textContent = data.title;
+      }
+
+      document.getElementById('story-actions').classList.remove('hidden');
+      document.getElementById('audio-section').classList.remove('hidden');
+      document.getElementById('btn-approve').classList.remove('hidden');
+    }
+  } catch (err) {
+    hideTyping();
+    appendMessage('assistant', 'Something went wrong generating the story. Please try again.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✍️ Write story';
+  }
+});
+
+// Approve story
+document.getElementById('btn-approve').addEventListener('click', async () => {
+  const resp = await fetch(`/story/${STORY_PK}/approve/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+  });
+  const data = await resp.json();
+  if (data.redirect) {
+    window.location.href = data.redirect;
+  }
+});
+
+// Generate audio
+const btnAudio = document.getElementById('btn-generate-audio');
+if (btnAudio) {
+  btnAudio.addEventListener('click', async () => {
+    btnAudio.disabled = true;
+    btnAudio.textContent = 'Generating…';
+    document.getElementById('audio-spinner').classList.remove('hidden');
+
+    try {
+      const resp = await fetch(`/story/${STORY_PK}/audio/`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF },
+      });
+      const data = await resp.json();
+
+      if (data.error) {
+        alert('Audio error: ' + data.error);
+        btnAudio.disabled = false;
+        btnAudio.textContent = 'Generate MP3';
+        document.getElementById('audio-spinner').classList.add('hidden');
+        return;
+      }
+
+      // Swap in the audio player
+      document.getElementById('audio-generate-area').classList.add('hidden');
+      const playerDiv = document.getElementById('audio-player-new');
+      playerDiv.classList.remove('hidden');
+      const audioEl = document.getElementById('new-audio');
+      audioEl.src = data.audio_url;
+      document.getElementById('audio-download').href = data.audio_url;
+
+    } catch (err) {
+      alert('Something went wrong generating audio.');
+      btnAudio.disabled = false;
+      btnAudio.textContent = 'Generate MP3';
+      document.getElementById('audio-spinner').classList.add('hidden');
+    }
+  });
+}
+
+function showApprovedBanner() {
+  document.getElementById('btn-approve').classList.remove('hidden');
+}
+</script>
+{% endblock %}

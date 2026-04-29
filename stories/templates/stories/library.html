@@ -1,0 +1,74 @@
+{% extends "stories/base.html" %}
+{% block title %}My Stories · YotoGenerate{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-12">
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="font-display text-4xl text-brand-700">My Stories</h1>
+      <p class="text-gray-500 text-sm mt-1">{{ stories.count }} story{{ stories.count|pluralize }} saved</p>
+    </div>
+    <a href="{% url 'create_story' %}"
+       class="bg-brand-500 hover:bg-brand-600 text-white font-semibold px-6 py-3 rounded-full shadow transition">
+      + New Story
+    </a>
+  </div>
+
+  {% if stories %}
+  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for story in stories %}
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm hover:shadow-md transition overflow-hidden group">
+      <div class="bg-gradient-to-br from-brand-100 to-amber-50 px-6 pt-6 pb-4">
+        <div class="text-3xl mb-2">📖</div>
+        <h2 class="font-display text-xl text-brand-800 leading-snug">{{ story.display_title }}</h2>
+        <p class="text-xs text-gray-500 mt-1">For {{ story.child_name }}{% if story.child_age %}, age {{ story.child_age }}{% endif %}</p>
+      </div>
+      <div class="px-6 py-4">
+        <div class="flex items-center gap-2 text-xs text-gray-400 mb-4">
+          <span>{{ story.created_at|date:"j M Y" }}</span>
+          {% if story.is_complete %}
+          <span class="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Complete</span>
+          {% else %}
+          <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Draft</span>
+          {% endif %}
+          {% if story.audio_file %}
+          <span class="bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">🎧 Audio</span>
+          {% endif %}
+        </div>
+        <div class="flex gap-2">
+          {% if story.is_complete %}
+          <a href="{% url 'story_detail' story.pk %}"
+             class="flex-1 text-center bg-brand-50 hover:bg-brand-100 text-brand-700 text-sm font-medium py-2 rounded-xl transition">
+            Read
+          </a>
+          {% else %}
+          <a href="{% url 'story_chat' story.pk %}"
+             class="flex-1 text-center bg-brand-50 hover:bg-brand-100 text-brand-700 text-sm font-medium py-2 rounded-xl transition">
+            Continue
+          </a>
+          {% endif %}
+          <form method="post" action="{% url 'delete_story' story.pk %}"
+                onsubmit="return confirm('Delete this story?')">
+            {% csrf_token %}
+            <button type="submit"
+              class="text-gray-300 hover:text-red-400 px-3 py-2 rounded-xl transition text-sm">
+              🗑
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="text-center py-24">
+    <div class="text-6xl mb-4">📚</div>
+    <h2 class="font-display text-2xl text-gray-400 mb-4">No stories yet</h2>
+    <a href="{% url 'create_story' %}"
+       class="inline-block bg-brand-500 hover:bg-brand-600 text-white font-semibold px-8 py-3 rounded-full shadow transition">
+      Create your first story →
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

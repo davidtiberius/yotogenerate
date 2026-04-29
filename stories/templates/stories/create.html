@@ -1,0 +1,86 @@
+{% extends "stories/base.html" %}
+{% block title %}New Story · YotoGenerate{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 py-12">
+  <div class="mb-8">
+    <a href="{% url 'library' %}" class="text-gray-400 hover:text-gray-600 text-sm">← My Stories</a>
+    <h1 class="font-display text-4xl text-brand-700 mt-3">Tell us about your child</h1>
+    <p class="text-gray-500 mt-2">Fill in what you know — the more detail, the more personal the story.</p>
+  </div>
+
+  <form method="post" class="space-y-6">
+    {% csrf_token %}
+
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-5">
+      <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">About the child</h2>
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Child's name <span class="text-red-400">*</span></label>
+          <input type="text" name="child_name" required placeholder="e.g. Matilda"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Age (optional)</label>
+          <input type="text" name="child_age" placeholder="e.g. 5, or 4–6"
+            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Interests &amp; passions</label>
+        <input type="text" name="interests" placeholder="e.g. dinosaurs, space, ballet, football, drawing"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
+        <p class="text-xs text-gray-400 mt-1">Separate with commas</p>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-5">
+      <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">People &amp; places</h2>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">People to include</label>
+        <textarea name="characters" rows="3"
+          placeholder="e.g. best friend Lily, little brother Tom, Grandma who loves baking, dog called Biscuit"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"></textarea>
+        <p class="text-xs text-gray-400 mt-1">Include names and a short description of their relationship</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Familiar places</label>
+        <input type="text" name="places"
+          placeholder="e.g. the park near our house, Grandma's garden, school, the beach"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent" />
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-amber-100 shadow-sm p-6 space-y-5">
+      <h2 class="font-semibold text-gray-700 text-sm uppercase tracking-wide">Audio settings</h2>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Narrator voice</label>
+        <select name="tts_voice"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent bg-white">
+          {% for value, label in voice_choices %}
+          <option value="{{ value }}" {% if value == "fable" %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <p class="text-xs text-gray-400 mt-1">You can change this later before generating audio</p>
+      </div>
+
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Anything else? (optional)</label>
+        <textarea name="extra_notes" rows="2"
+          placeholder="e.g. she's scared of the dark but loves stars, we recently got a new puppy"
+          class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"></textarea>
+      </div>
+    </div>
+
+    <button type="submit"
+      class="w-full bg-brand-500 hover:bg-brand-600 text-white text-lg font-semibold py-4 rounded-full shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5">
+      Start writing my story →
+    </button>
+  </form>
+</div>
+{% endblock %}
