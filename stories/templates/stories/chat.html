@@ -3,7 +3,10 @@
 
 {% block extra_head %}
 <style>
-  #chat-container { height: calc(100vh - 280px); min-height: 320px; }
+  #chat-container, #story-container { height: 360px; }
+  @media (min-width: 1024px) {
+    #chat-container, #story-container { height: calc(100vh - 280px); min-height: 320px; }
+  }
 </style>
 {% endblock %}
 
@@ -107,7 +110,7 @@
         </div>
       </div>
 
-      <div id="story-container" class="flex-1 overflow-y-auto px-6 py-5" style="height: calc(100vh - 280px); min-height: 320px;">
+      <div id="story-container" class="flex-1 overflow-y-auto px-6 py-5">
         {% if story.content %}
         <div id="story-content" class="prose-story text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{{ story.content }}</div>
         {% else %}

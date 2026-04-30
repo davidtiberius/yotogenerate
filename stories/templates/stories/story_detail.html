@@ -5,7 +5,7 @@
 <div class="max-w-3xl mx-auto px-4 py-12">
 
   <!-- Back + actions -->
-  <div class="flex items-center justify-between mb-8">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-8">
     <a href="{% url 'library' %}" class="text-gray-400 hover:text-gray-600 text-sm">← My Stories</a>
     <div class="flex gap-2">
       <a href="{% url 'story_chat' story.pk %}"
@@ -27,7 +27,7 @@
   <article class="bg-white rounded-2xl border border-amber-100 shadow-sm overflow-hidden">
 
     <!-- Cover -->
-    <div class="bg-gradient-to-br from-brand-100 via-amber-50 to-yellow-50 px-8 pt-10 pb-8 text-center">
+    <div class="bg-gradient-to-br from-brand-100 via-amber-50 to-yellow-50 px-4 sm:px-8 pt-10 pb-8 text-center">
       <div class="text-6xl mb-4">📖</div>
       <h1 class="font-display text-4xl text-brand-800 leading-tight mb-2">{{ story.display_title }}</h1>
       <p class="text-gray-500 text-sm">
@@ -38,7 +38,7 @@
 
     <!-- Audio player -->
     {% if story.audio_file %}
-    <div class="px-8 py-5 bg-purple-50 border-b border-purple-100">
+    <div class="px-4 sm:px-8 py-5 bg-purple-50 border-b border-purple-100">
       <p class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-3">🎧 Listen to the story</p>
       <audio controls class="w-full">
         <source src="{{ story.audio_file.url }}" type="audio/mpeg" />
@@ -60,7 +60,7 @@
     {% endif %}
 
     <!-- Story text -->
-    <div class="px-8 py-8">
+    <div class="px-4 sm:px-8 py-8">
       <div class="prose-story text-gray-700 leading-relaxed whitespace-pre-wrap text-[1.05rem]">{{ story.content }}</div>
     </div>
 
