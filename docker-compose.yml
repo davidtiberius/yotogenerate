@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: yotogenerate
+      POSTGRES_USER: yoto
+      POSTGRES_PASSWORD: yoto
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U yoto -d yotogenerate" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - media-data:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DEBUG=True
+      - DJANGO_SECRET_KEY=local-dev-secret-key
+      - ALLOWED_HOSTS=localhost,127.0.0.1
+      - GUNICORN_WORKERS=2
+      - DATABASE_URL=${DATABASE_URL:-postgresql://yoto:yoto@db:5432/yotogenerate}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - YOTO_CLIENT_ID=${YOTO_CLIENT_ID}
+      - YOTO_REDIRECT_URI=${YOTO_REDIRECT_URI:-http://localhost:8000/yoto/callback/}
+
+volumes:
+  db-data:
+  media-data:
