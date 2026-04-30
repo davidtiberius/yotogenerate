@@ -323,6 +323,7 @@ def yoto_callback(request):
     try:
         token_data = yoto_api.exchange_code(
             client_id=settings.YOTO_CLIENT_ID,
+            client_secret=settings.YOTO_CLIENT_SECRET,
             code=code,
             code_verifier=code_verifier,
             redirect_uri=settings.YOTO_REDIRECT_URI,

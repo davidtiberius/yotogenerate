@@ -50,22 +50,28 @@ def _post_form(url, data):
         return json.loads(resp.read())
 
 
-def exchange_code(client_id, code, code_verifier, redirect_uri):
-    return _post_form(YOTO_TOKEN_URL, {
+def exchange_code(client_id, client_secret, code, code_verifier, redirect_uri):
+    data = {
         "grant_type": "authorization_code",
         "client_id": client_id,
         "code": code,
         "code_verifier": code_verifier,
         "redirect_uri": redirect_uri,
-    })
+    }
+    if client_secret:
+        data["client_secret"] = client_secret
+    return _post_form(YOTO_TOKEN_URL, data)
 
 
-def refresh_access_token(client_id, refresh_token):
-    return _post_form(YOTO_TOKEN_URL, {
+def refresh_access_token(client_id, client_secret, refresh_token):
+    data = {
         "grant_type": "refresh_token",
         "client_id": client_id,
         "refresh_token": refresh_token,
-    })
+    }
+    if client_secret:
+        data["client_secret"] = client_secret
+    return _post_form(YOTO_TOKEN_URL, data)
 
 
 class YotoTokenExpired(Exception):
@@ -93,6 +99,7 @@ def get_valid_token(yoto_account):
     if yoto_account.refresh_token:
         token_data = refresh_access_token(
             settings.YOTO_CLIENT_ID,
+            settings.YOTO_CLIENT_SECRET,
             yoto_account.refresh_token,
         )
         save_tokens(yoto_account.user, token_data)

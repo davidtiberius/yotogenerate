@@ -31,6 +31,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - YOTO_CLIENT_ID=${YOTO_CLIENT_ID}
+      - YOTO_CLIENT_SECRET=${YOTO_CLIENT_SECRET}
       - YOTO_REDIRECT_URI=${YOTO_REDIRECT_URI:-http://localhost:8000/yoto/callback/}
 
 volumes:
