@@ -368,5 +368,7 @@ def push_to_yoto(request, pk):
         story.yoto_card_id = card_id
         story.save(update_fields=["yoto_card_id"])
         return JsonResponse({"ok": True, "card_id": card_id})
+    except yoto_api.YotoTokenExpired as e:
+        return JsonResponse({"error": str(e), "reconnect": True}, status=401)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

@@ -15,7 +15,7 @@ from django.utils import timezone
 YOTO_AUTH_URL = "https://login.yotoplay.com/authorize"
 YOTO_TOKEN_URL = "https://login.yotoplay.com/oauth/token"
 YOTO_API_BASE = "https://api.yotoplay.com"
-YOTO_SCOPES = "user:content:manage offline_access"
+YOTO_SCOPES = "user:content:manage"
 
 
 def generate_pkce():
@@ -68,6 +68,10 @@ def refresh_access_token(client_id, refresh_token):
     })
 
 
+class YotoTokenExpired(Exception):
+    pass
+
+
 def save_tokens(user, token_data):
     from .models import YotoAccount
     expires_in = token_data.get("expires_in", 3600)
@@ -76,22 +80,25 @@ def save_tokens(user, token_data):
         user=user,
         defaults={
             "access_token": token_data["access_token"],
-            "refresh_token": token_data["refresh_token"],
+            "refresh_token": token_data.get("refresh_token", ""),
             "expires_at": expires_at,
         },
     )
 
 
 def get_valid_token(yoto_account):
-    """Return a valid access token, refreshing if needed."""
-    if yoto_account.is_expired():
+    """Return a valid access token, refreshing if possible or raising YotoTokenExpired."""
+    if not yoto_account.is_expired():
+        return yoto_account.access_token
+    if yoto_account.refresh_token:
         token_data = refresh_access_token(
             settings.YOTO_CLIENT_ID,
             yoto_account.refresh_token,
         )
         save_tokens(yoto_account.user, token_data)
         yoto_account.refresh_from_db()
-    return yoto_account.access_token
+        return yoto_account.access_token
+    raise YotoTokenExpired("Yoto session expired — please reconnect your account.")
 
 
 def _api_get(token, path, params=None):

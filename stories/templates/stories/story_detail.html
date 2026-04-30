@@ -132,6 +132,14 @@ function pushToYoto() {
     if (data.ok) {
       if (status) status.textContent = '✅ Story sent to your Yoto library!';
       setTimeout(() => location.reload(), 1500);
+    } else if (data.reconnect) {
+      if (status) {
+        status.innerHTML = '❌ Your Yoto session has expired. <a href="{% url "yoto_connect" %}" class="underline font-medium">Reconnect your account</a> and try again.';
+        status.classList.add('text-red-600');
+        status.classList.remove('text-teal-700');
+        status.classList.remove('hidden');
+      }
+      if (btn) { btn.disabled = false; btn.textContent = '🎴 Send to Yoto'; }
     } else {
       if (status) {
         status.textContent = '❌ ' + (data.error || 'Something went wrong.');
