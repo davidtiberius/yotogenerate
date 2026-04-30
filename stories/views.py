@@ -71,6 +71,9 @@ def _get_ai_response(story: Story, user_message: str | None = None) -> str:
     if user_message:
         api_messages.append({"role": "user", "content": user_message})
 
+    if not api_messages:
+        api_messages.append({"role": "user", "content": "Hi! I'd like to create a story for my child. Here are the details I've provided so far — please ask me any clarifying questions you need."})
+
     system = SYSTEM_PROMPT.format(child_details=_build_child_details(story))
 
     response = client.messages.create(
