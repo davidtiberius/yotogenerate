@@ -49,6 +49,47 @@
         ⬇ Download MP3
       </a>
     </div>
+
+    <!-- Send to Yoto -->
+    <div class="px-8 py-4 bg-teal-50 border-b border-teal-100">
+      {% if yoto_connected %}
+        {% if story.yoto_card_id %}
+          <div class="flex items-center gap-2 text-sm text-teal-700">
+            <span class="text-lg">✅</span>
+            <span>Sent to your Yoto library</span>
+            <span class="text-gray-400 text-xs">(card&nbsp;{{ story.yoto_card_id }})</span>
+            <button id="yoto-resend-btn" onclick="pushToYoto()"
+              class="ml-auto text-xs text-teal-600 hover:underline font-medium">
+              Send again
+            </button>
+          </div>
+        {% else %}
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-teal-800">Send to Yoto</p>
+              <p class="text-xs text-teal-600 mt-0.5">Upload this story to your Yoto Make Your Own library</p>
+            </div>
+            <button id="yoto-send-btn" onclick="pushToYoto()"
+              class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2 rounded-full transition whitespace-nowrap">
+              🎴 Send to Yoto
+            </button>
+          </div>
+        {% endif %}
+        <div id="yoto-status" class="hidden mt-3 text-sm text-teal-700"></div>
+      {% else %}
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-medium text-teal-800">Send to Yoto</p>
+            <p class="text-xs text-teal-600 mt-0.5">Connect your Yoto account to send stories directly to your player</p>
+          </div>
+          <a href="{% url 'yoto_connect' %}"
+            class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2 rounded-full transition whitespace-nowrap">
+            Connect Yoto
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
     {% else %}
     <div class="px-8 py-4 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
       <p class="text-sm text-amber-700">No audio yet — go back to the chat to generate it.</p>
@@ -67,4 +108,54 @@
   </article>
 
 </div>
+
+<script>
+function pushToYoto() {
+  const btn = document.getElementById('yoto-send-btn') || document.getElementById('yoto-resend-btn');
+  const status = document.getElementById('yoto-status');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Uploading…';
+  }
+  if (status) {
+    status.classList.remove('hidden');
+    status.textContent = 'Uploading and transcoding your story — this may take up to a minute…';
+  }
+
+  fetch('{% url "push_to_yoto" story.pk %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      if (status) status.textContent = '✅ Story sent to your Yoto library!';
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      if (status) {
+        status.textContent = '❌ ' + (data.error || 'Something went wrong.');
+        status.classList.add('text-red-600');
+        status.classList.remove('text-teal-700');
+        status.classList.remove('hidden');
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '🎴 Send to Yoto';
+      }
+    }
+  })
+  .catch(err => {
+    if (status) {
+      status.textContent = '❌ Network error: ' + err;
+      status.classList.add('text-red-600');
+      status.classList.remove('hidden');
+    }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🎴 Send to Yoto';
+    }
+  });
+}
+</script>
 {% endblock %}

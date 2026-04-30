@@ -1,5 +1,5 @@
 import json
-import os
+import secrets
 from pathlib import Path
 
 from django.conf import settings
@@ -14,7 +14,8 @@ from django.views.decorators.http import require_POST
 import anthropic
 from openai import OpenAI
 
-from .models import ChatMessage, Story
+from .models import ChatMessage, Story, YotoAccount
+from . import yoto as yoto_api
 
 SYSTEM_PROMPT = """You are a warm, creative children's story writing assistant. A parent is using you to craft a personalised bedtime or reading story for their child.
 
@@ -111,7 +112,11 @@ def register(request):
 @login_required
 def library(request):
     stories = Story.objects.filter(user=request.user)
-    return render(request, "stories/library.html", {"stories": stories})
+    yoto_connected = YotoAccount.objects.filter(user=request.user).exists()
+    return render(request, "stories/library.html", {
+        "stories": stories,
+        "yoto_connected": yoto_connected,
+    })
 
 
 @login_required
@@ -254,7 +259,11 @@ def generate_audio(request, pk):
 @login_required
 def story_detail(request, pk):
     story = get_object_or_404(Story, pk=pk, user=request.user)
-    return render(request, "stories/story_detail.html", {"story": story})
+    yoto_connected = YotoAccount.objects.filter(user=request.user).exists()
+    return render(request, "stories/story_detail.html", {
+        "story": story,
+        "yoto_connected": yoto_connected,
+    })
 
 
 @login_required
@@ -268,3 +277,96 @@ def delete_story(request, pk):
     story.delete()
     messages.success(request, "Story deleted.")
     return redirect("library")
+
+
+# ── Yoto OAuth ──────────────────────────────────────────────────────────────
+
+@login_required
+def yoto_connect(request):
+    if not settings.YOTO_CLIENT_ID:
+        messages.error(request, "Yoto integration is not configured.")
+        return redirect("library")
+
+    code_verifier, code_challenge = yoto_api.generate_pkce()
+    state = secrets.token_urlsafe(16)
+
+    request.session["yoto_code_verifier"] = code_verifier
+    request.session["yoto_state"] = state
+
+    url = yoto_api.build_authorize_url(
+        client_id=settings.YOTO_CLIENT_ID,
+        redirect_uri=settings.YOTO_REDIRECT_URI,
+        state=state,
+        code_challenge=code_challenge,
+    )
+    return redirect(url)
+
+
+@login_required
+def yoto_callback(request):
+    error = request.GET.get("error")
+    if error:
+        messages.error(request, f"Yoto login failed: {request.GET.get('error_description', error)}")
+        return redirect("library")
+
+    state = request.GET.get("state")
+    if state != request.session.pop("yoto_state", None):
+        messages.error(request, "Invalid OAuth state. Please try again.")
+        return redirect("library")
+
+    code = request.GET.get("code")
+    code_verifier = request.session.pop("yoto_code_verifier", None)
+    if not code or not code_verifier:
+        messages.error(request, "Missing OAuth code. Please try again.")
+        return redirect("library")
+
+    try:
+        token_data = yoto_api.exchange_code(
+            client_id=settings.YOTO_CLIENT_ID,
+            code=code,
+            code_verifier=code_verifier,
+            redirect_uri=settings.YOTO_REDIRECT_URI,
+        )
+        yoto_api.save_tokens(request.user, token_data)
+        messages.success(request, "Your Yoto account is now connected!")
+    except Exception as e:
+        messages.error(request, f"Failed to connect Yoto account: {e}")
+
+    return redirect("library")
+
+
+@login_required
+@require_POST
+def yoto_disconnect(request):
+    YotoAccount.objects.filter(user=request.user).delete()
+    messages.success(request, "Yoto account disconnected.")
+    return redirect("library")
+
+
+# ── Push to Yoto ─────────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def push_to_yoto(request, pk):
+    story = get_object_or_404(Story, pk=pk, user=request.user)
+
+    if not story.audio_file:
+        return JsonResponse({"error": "No audio file — generate audio first."}, status=400)
+
+    try:
+        yoto_account = request.user.yoto_account
+    except YotoAccount.DoesNotExist:
+        return JsonResponse({"error": "Yoto account not connected."}, status=400)
+
+    audio_path = Path(settings.MEDIA_ROOT) / story.audio_file.name
+    if not audio_path.exists():
+        return JsonResponse({"error": "Audio file not found on disk."}, status=400)
+
+    try:
+        card = yoto_api.push_audio_to_yoto(yoto_account, str(audio_path), story.display_title())
+        card_id = card.get("cardId", "")
+        story.yoto_card_id = card_id
+        story.save(update_fields=["yoto_card_id"])
+        return JsonResponse({"ok": True, "card_id": card_id})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
