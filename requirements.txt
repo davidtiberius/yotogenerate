@@ -5,3 +5,4 @@ python-dotenv>=1.0
 gunicorn>=22.0
 dj-database-url>=2.0
 psycopg2-binary>=2.9
+celery[redis]>=5.4

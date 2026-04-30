@@ -162,7 +162,6 @@
 const STORY_PK = {{ story.pk }};
 const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-// Helpers
 function scrollChat() {
   const c = document.getElementById('chat-container');
   c.scrollTop = c.scrollHeight;
@@ -207,6 +206,37 @@ function hideTyping() {
   document.getElementById('typing-indicator').classList.add('hidden');
 }
 
+async function pollTask(taskId) {
+  while (true) {
+    await new Promise(r => setTimeout(r, 1000));
+    const resp = await fetch(`/task/${taskId}/status/`);
+    const data = await resp.json();
+    if (data.status === 'done') return data.result;
+    if (data.status === 'error') throw new Error(data.error);
+  }
+}
+
+// If no messages yet, the initial AI message is being generated — poll for it
+{% if not chat_messages.count %}
+(async () => {
+  showTyping();
+  const input = document.getElementById('chat-input');
+  input.disabled = true;
+  while (true) {
+    await new Promise(r => setTimeout(r, 1500));
+    const resp = await fetch(`/story/${STORY_PK}/chat/`);
+    const html = await resp.text();
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const msgs = doc.querySelectorAll('#chat-container .flex.gap-3');
+    if (msgs.length > 1) {
+      location.reload();
+      return;
+    }
+  }
+})();
+{% endif %}
+
 // Chat form
 document.getElementById('chat-form').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -226,13 +256,15 @@ document.getElementById('chat-form').addEventListener('submit', async (e) => {
       body: JSON.stringify({ message: text }),
     });
     const data = await resp.json();
-    hideTyping();
 
     if (data.error) {
+      hideTyping();
       appendMessage('assistant', 'Sorry, something went wrong. Please try again.');
     } else {
-      appendMessage('assistant', data.reply);
-      if (data.story_approved) {
+      const result = await pollTask(data.task_id);
+      hideTyping();
+      appendMessage('assistant', result.reply);
+      if (result.story_approved) {
         showApprovedBanner();
       }
     }
@@ -258,21 +290,21 @@ document.getElementById('btn-generate-story').addEventListener('click', async ()
       headers: { 'X-CSRFToken': CSRF },
     });
     const data = await resp.json();
+    const result = await pollTask(data.task_id);
     hideTyping();
 
-    appendMessage('assistant', data.reply);
+    appendMessage('assistant', result.reply);
 
-    // Show story in right panel
-    if (data.content) {
+    if (result.content) {
       const placeholder = document.getElementById('story-placeholder');
       const content = document.getElementById('story-content');
       if (placeholder) placeholder.classList.add('hidden');
       content.classList.remove('hidden');
-      content.textContent = data.content;
+      content.textContent = result.content;
       scrollStory();
 
-      if (data.title) {
-        document.getElementById('story-title-header').textContent = data.title;
+      if (result.title) {
+        document.getElementById('story-title-header').textContent = result.title;
       }
 
       document.getElementById('story-actions').classList.remove('hidden');
@@ -323,13 +355,22 @@ if (btnAudio) {
         return;
       }
 
-      // Swap in the audio player
+      const result = await pollTask(data.task_id);
+
+      if (result.error) {
+        alert('Audio error: ' + result.error);
+        btnAudio.disabled = false;
+        btnAudio.textContent = 'Generate MP3';
+        document.getElementById('audio-spinner').classList.add('hidden');
+        return;
+      }
+
       document.getElementById('audio-generate-area').classList.add('hidden');
       const playerDiv = document.getElementById('audio-player-new');
       playerDiv.classList.remove('hidden');
       const audioEl = document.getElementById('new-audio');
-      audioEl.src = data.audio_url;
-      document.getElementById('audio-download').href = data.audio_url;
+      audioEl.src = result.audio_url;
+      document.getElementById('audio-download').href = result.audio_url;
 
     } catch (err) {
       alert('Something went wrong generating audio.');

@@ -13,4 +13,5 @@ urlpatterns = [
     path("story/<int:pk>/audio/", views.generate_audio, name="generate_audio"),
     path("story/<int:pk>/", views.story_detail, name="story_detail"),
     path("story/<int:pk>/delete/", views.delete_story, name="delete_story"),
+    path("task/<str:task_id>/status/", views.task_status, name="task_status"),
 ]
