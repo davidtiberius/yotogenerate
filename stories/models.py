@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 
 class Story(models.Model):
@@ -23,6 +24,7 @@ class Story(models.Model):
     content = models.TextField(blank=True)
     tts_voice = models.CharField(max_length=20, choices=VOICE_CHOICES, default="fable")
     audio_file = models.FileField(upload_to="audio/", blank=True, null=True)
+    yoto_card_id = models.CharField(max_length=20, blank=True)
     is_complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -35,6 +37,21 @@ class Story(models.Model):
 
     def display_title(self):
         return self.title or f"{self.child_name}'s Story"
+
+
+class YotoAccount(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="yoto_account")
+    access_token = models.TextField()
+    refresh_token = models.TextField()
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+    def __str__(self):
+        return f"Yoto account for {self.user.username}"
 
 
 class ChatMessage(models.Model):

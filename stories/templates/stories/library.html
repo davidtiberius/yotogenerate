@@ -14,6 +14,37 @@
     </a>
   </div>
 
+  <!-- Yoto connection status -->
+  <div class="mb-8 px-5 py-4 rounded-2xl border {% if yoto_connected %}bg-teal-50 border-teal-100{% else %}bg-white border-amber-100{% endif %} flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🎴</span>
+      <div>
+        {% if yoto_connected %}
+          <p class="text-sm font-medium text-teal-800">Yoto account connected</p>
+          <p class="text-xs text-teal-600">Stories with audio can be sent directly to your Yoto library</p>
+        {% else %}
+          <p class="text-sm font-medium text-gray-700">Connect your Yoto account</p>
+          <p class="text-xs text-gray-500">Link Yoto to send stories straight to your player</p>
+        {% endif %}
+      </div>
+    </div>
+    {% if yoto_connected %}
+      <form method="post" action="{% url 'yoto_disconnect' %}"
+            onsubmit="return confirm('Disconnect your Yoto account?')">
+        {% csrf_token %}
+        <button type="submit"
+          class="text-xs text-gray-400 hover:text-red-500 font-medium transition">
+          Disconnect
+        </button>
+      </form>
+    {% else %}
+      <a href="{% url 'yoto_connect' %}"
+        class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2 rounded-full transition whitespace-nowrap">
+        Connect Yoto
+      </a>
+    {% endif %}
+  </div>
+
   {% if stories %}
   <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for story in stories %}

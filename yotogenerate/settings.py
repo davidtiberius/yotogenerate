@@ -95,3 +95,7 @@ if _csrf_origins:
 
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+
+YOTO_CLIENT_ID = os.environ.get("YOTO_CLIENT_ID", "")
+YOTO_CLIENT_SECRET = os.environ.get("YOTO_CLIENT_SECRET", "")
+YOTO_REDIRECT_URI = os.environ.get("YOTO_REDIRECT_URI", "http://localhost:8000/yoto/callback/")
