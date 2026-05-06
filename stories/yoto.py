@@ -15,7 +15,7 @@ from django.utils import timezone
 YOTO_AUTH_URL = "https://login.yotoplay.com/authorize"
 YOTO_TOKEN_URL = "https://login.yotoplay.com/oauth/token"
 YOTO_API_BASE = "https://api.yotoplay.com"
-YOTO_SCOPES = "user:content:manage"
+YOTO_SCOPES = "user:content:view user:content:manage"
 
 
 def generate_pkce():

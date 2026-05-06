@@ -282,6 +282,26 @@ def delete_story(request, pk):
     return redirect("library")
 
 
+# ── Yoto debug ───────────────────────────────────────────────────────────────
+
+@login_required
+def yoto_debug(request):
+    try:
+        yoto_account = request.user.yoto_account
+    except YotoAccount.DoesNotExist:
+        return JsonResponse({"error": "No Yoto account connected"}, status=400)
+    card_id = request.GET.get("card")
+    try:
+        token = yoto_api.get_valid_token(yoto_account)
+        if card_id:
+            data = yoto_api._api_get(token, f"/content/{card_id}")
+            return JsonResponse(data, safe=False)
+        data = yoto_api._api_get(token, "/content/mine")
+        return JsonResponse(data, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
 # ── Yoto OAuth ──────────────────────────────────────────────────────────────
 
 @login_required
@@ -371,7 +391,7 @@ def push_to_yoto(request, pk):
         card_id = card.get("cardId", "")
         story.yoto_card_id = card_id
         story.save(update_fields=["yoto_card_id"])
-        return JsonResponse({"ok": True, "card_id": card_id})
+        return JsonResponse({"ok": True, "card_id": card_id, "card": card})
     except yoto_api.YotoTokenExpired as e:
         return JsonResponse({"error": str(e), "reconnect": True}, status=401)
     except Exception as e:

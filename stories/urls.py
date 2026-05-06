@@ -14,6 +14,7 @@ urlpatterns = [
     path("story/<int:pk>/push-to-yoto/", views.push_to_yoto, name="push_to_yoto"),
     path("story/<int:pk>/", views.story_detail, name="story_detail"),
     path("story/<int:pk>/delete/", views.delete_story, name="delete_story"),
+    path("yoto/debug/", views.yoto_debug, name="yoto_debug"),
     path("yoto/connect/", views.yoto_connect, name="yoto_connect"),
     path("yoto/callback/", views.yoto_callback, name="yoto_callback"),
     path("yoto/disconnect/", views.yoto_disconnect, name="yoto_disconnect"),
